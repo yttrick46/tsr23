@@ -1,0 +1,51 @@
+name: NOMACHINETOr
+on:
+  workflow_dispatch:
+    inputs:
+      USER_NAME:
+        description: 'Enter USER NAME'
+        required: true
+      USER_PWD:
+        description: 'Enter USER PWD'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update OS
+        run: sudo apt-get update -y > /dev/null 2>&1 && sudo apt-get upgrade -y > /dev/null 2>&1 && sudo apt-get -y install wget curl nano git xz-utils openssh-server build-essential net-tools dialog apt-utils libevent* libsecret* > /dev/null 2>&1
+      - name: Install NoMachine
+        run: |
+          docker run --rm -d --network host --privileged --name nomachine-mate -e PASSWORD=${{ github.event.inputs.USER_PWD }} -e USER=${{ github.event.inputs.USER_NAME }} --cap-add=SYS_PTRACE --shm-size=1g thuonghai2711/nomachine-ubuntu-desktop:mate
+
+      - name: Install TOr
+        run: |
+          wget https://deb.torproject.org/torproject.org/pool/main/t/tor/tor_0.4.7.13-1~jammy+1_amd64.deb > /dev/null 2>&1
+          sudo dpkg -i tor_0.4.7.13-1~jammy+1_amd64.deb > /dev/null 2>&1
+          sudo sed -i 's\#SocksPort 9050\SocksPort 9052\ ' /etc/tor/torrc
+          sudo sed -i 's\#ControlPort 9051\ControlPort 9053\ ' /etc/tor/torrc
+          sudo sed -i 's\#HashedControlPassword\HashedControlPassword\ ' /etc/tor/torrc
+          sudo sed -i 's\#CookieAuthentication 1\CookieAuthentication 1\ ' /etc/tor/torrc
+          sudo sed -i 's\#HiddenServiceDir /var/lib/tor/hidden_service/\HiddenServiceDir /var/lib/tor/hidden_service/\ ' /etc/tor/torrc
+          sudo sed -i '72s\#HiddenServicePort 80 127.0.0.1:80\HiddenServicePort 12345 127.0.0.1:12345\ ' /etc/tor/torrc
+          sudo sed -i '73s\#HiddenServicePort 22 127.0.0.1:22\HiddenServicePort 22 127.0.0.1:22\ ' /etc/tor/torrc
+          sudo sed -i '74 i HiddenServicePort 8080 127.0.0.1:8080' /etc/tor/torrc
+          sudo sed -i '75 i HiddenServicePort 4000 127.0.0.1:4000' /etc/tor/torrc
+          sudo sed -i '76 i HiddenServicePort 8000 127.0.0.1:8000' /etc/tor/torrc
+          sudo sed -i '77 i HiddenServicePort 9000 127.0.0.1:9000' /etc/tor/torrc
+      - name: Run NOMACHINETOr
+        run: |
+          sudo tor >> tor.log &
+          sleep 1m
+          echo "NoMachine: https://www.nomachine.com/download"
+          echo Done! NoMachine Information:
+          echo IP Address:
+          sudo cat /var/lib/tor/hidden_service/hostname
+          echo Port: 4040
+          echo User: ${{ github.event.inputs.USER_NAME }}
+          echo Passwd: ${{ github.event.inputs.USER_PWD }}
+      - name: Loop
+        run: |
+          echo "##################################### ALL OK #####################################"
+          seq 1 432000 | while read i; do echo -en "\r Running .     $i s /432000 s";sleep 0.1;echo -en "\r Running ..    $i s /432000 s";sleep 0.1;echo -en "\r Running ...   $i s /432000 s";sleep 0.1;echo -en "\r Running ....  $i s /432000 s";sleep 0.1;echo -en "\r Running ..... $i s /432000 s";sleep 0.1;echo -en "\r Running     . $i s /432000 s";sleep 0.1;echo -en "\r Running  .... $i s /432000 s";sleep 0.1;echo -en "\r Running   ... $i s /432000 s";sleep 0.1;echo -en "\r Running    .. $i s /432000 s";sleep 0.1;echo -en "\r Running     . $i s /432000 s";sleep 0.1; done
